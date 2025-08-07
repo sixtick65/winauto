@@ -1,8 +1,12 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:ffi';
 import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart';
+import 'package:image/image.dart' as img;
 
 void main() {
   runApp(const MyApp());
@@ -57,8 +61,16 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> {    // TODO : 마우스 포인터 위치색상 구현중. 새로 위젯 만들자
   int _counter = 0;
+  Uint8List bytes = Uint8List.fromList([]);
+  Timer? timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // timer = Timer.periodic(const Duration(milliseconds: 200), (t) => debug(getMousePoint()));
+  }
 
   void _incrementCounter() {
     setState(() {
@@ -89,9 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Container(
-        constraints: BoxConstraints(minWidth: 300),
-        width: 450,
+      body: SingleChildScrollView(
         child: Center(
           // Center is a layout widget. It takes a single child and positions it
           // in the middle of the parent.
@@ -116,6 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 '$_counter',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
+              Image.memory(bytes),
             ],
           ),
         ),
@@ -124,7 +135,13 @@ class _MyHomePageState extends State<MyHomePage> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton(
-            onPressed: () => findWindowHandle('sixtick65'),
+            onPressed: () {
+              findWindowHandle('sixtick65');
+              setState(() {
+                bytes = captureWindow(result);
+              }); 
+              getMousePoint();
+              },
             tooltip: 'test',
             child: const Text('test'),
           ),
@@ -139,9 +156,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-void debug(String text){
+void debug(Object text){
   if(kDebugMode){
-    debugPrint(text);
+    debugPrint(text.toString());
   }
 }
 
@@ -153,7 +170,7 @@ void findWindowHandle(String name){
 
   EnumWindows(
     // Pointer.fromFunction<EnumWindowsProc>(_enumWindowsCallback, 0),
-    Pointer.fromFunction<WNDENUMPROC>(_enumWindowsCallback, 0),
+    Pointer.fromFunction<WNDENUMPROC>(_enumWindowsCallback, 0),  // 콜백을 보낼때 콜백은 최상위 함수여야 한다. 
     0,
   );
 }
@@ -181,3 +198,98 @@ int _enumWindowsCallback(int hWnd, int lParam) {
     free(windowProcessId);
     return 1; // for
   }
+
+
+Uint8List captureWindow(int hWnd) {
+  // 1. 창의 DC 가져오기 device context
+  final hdcScreen = GetDC(hWnd); // 또는 GetWindowDC(hWnd) : 타이틀 테두리 포함
+
+  // 2. 호환 DC 생성
+  final hdcMemDC = CreateCompatibleDC(hdcScreen);
+
+  // 3. 창 크기 얻기
+  final rect = calloc<RECT>();
+  GetClientRect(hWnd, rect);
+  debug("x : ${rect.ref.left}, y : ${rect.ref.top}"); // 0, 0
+  final width = rect.ref.right - rect.ref.left;
+  final height = rect.ref.bottom - rect.ref.top;
+  free(rect);
+  debug("width : $width, height : $height"); // 1323, 763
+
+  // 4. 호환 비트맵 생성 및 선택
+  final hBitmap = CreateCompatibleBitmap(hdcScreen, width, height);
+  SelectObject(hdcMemDC, hBitmap);
+
+  // 5. 화면 DC 내용을 메모리 DC로 복사
+  BitBlt(hdcMemDC, 0, 0, width, height, hdcScreen, 0, 0, SRCCOPY);
+
+  // 6. 비트맵 정보 구조체 준비
+  final bmi = calloc<BITMAPINFO>();
+  bmi.ref.bmiHeader.biSize = sizeOf<BITMAPINFOHEADER>();
+  bmi.ref.bmiHeader.biWidth = width;
+  bmi.ref.bmiHeader.biHeight = -height; // top-down 이미지
+  bmi.ref.bmiHeader.biPlanes = 1;
+  bmi.ref.bmiHeader.biBitCount = 32; // 또는 24
+  bmi.ref.bmiHeader.biCompression = BI_RGB;
+
+  // 7. 비트 데이터 추출
+  final bitmapSize = width * height * 4; // 32비트의 경우
+  final bitmapData = calloc<Uint8>(bitmapSize);
+  GetDIBits(hdcMemDC, hBitmap, 0, height, bitmapData, bmi, DIB_RGB_COLORS);
+  
+
+  // // 8. 이미지 파일로 저장 (BMP 예시)
+  // final bmpFile = File('captured_window.bmp');
+  // final bytes = generateBmpHeader(width, height, bitmapData.asTypedList(bitmapSize));
+
+  // bmpFile.writeAsBytesSync(bytes);
+  // print('창 화면을 captured_window.bmp로 저장했습니다.');
+
+  // GetDIBits로 얻은 데이터를 Dart의 Uint8List로 변환
+  final pixelData = bitmapData.asTypedList(bitmapSize);
+  
+  // win32 API에서 가져온 비트맵은 일반적으로 BGR 순서입니다.
+  // Dart의 image 패키지는 RGB를 기대하므로 순서를 바꿔줘야 합니다.
+  final img.Image image = img.Image.fromBytes(
+    width: width,
+    height: height,
+    bytes: pixelData.buffer,
+    order: img.ChannelOrder.bgra, // BGR-A 순서로 데이터 처리
+  );
+  
+  // image 패키지를 사용하여 PNG로 인코딩
+  final Uint8List pngBytes = img.encodePng(image);
+  
+  free(bmi);
+  free(bitmapData);
+  // 9. 리소스 해제
+  DeleteObject(hBitmap);
+  DeleteDC(hdcMemDC);
+  ReleaseDC(hWnd, hdcScreen); // GetDC로 얻었으면 ReleaseDC 사용
+
+  return pngBytes;
+}
+
+(int, int, int, int, int) getMousePoint(){
+  final point = calloc<POINT>();
+  int res = GetCursorPos(point);
+  // debug(res);
+  final x = point.ref.x;
+  final y = point.ref.y;
+  // debug("$x, $y");
+
+  // 창의 DC 가져오기
+  final hdc = GetDC(NULL);
+  // GetPixel을 사용해 픽셀 색상 값 얻기
+  final bgrColor = GetPixel(hdc, x, y);
+  // debug("color : $bgrColor");
+  final b = (bgrColor >> 16) & 0xFF;
+  final g = (bgrColor >> 8) & 0xFF;
+  final r = bgrColor & 0xFF;
+
+  // debug('색상 정보 (RGB): ($r, $g, $b)');
+  // debug((0,0).runtimeType.toString());
+  free(point);
+  return (x, y, r, g, b);
+}
+
