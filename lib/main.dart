@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:win32/win32.dart';
 import 'package:winauto/widget/scan_hp.dart';
+import 'package:winauto/widget/search_handle.dart';
 
 import 'package:window_size/window_size.dart' as window_size;
 import 'win32.dart' as win32;
@@ -34,6 +35,7 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+  
 
   @override
   Widget build(BuildContext context) {
@@ -56,10 +58,11 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {    // TODO : 마우스 포인터 위치색상 구현중. 새로 위젯 만들자
-  int _counter = 0;
+class _MyHomePageState extends State<MyHomePage> {  
   Uint8List bytes = Uint8List.fromList([]);
   Timer? timer;
+
+  final SearchHandle searchHandle = SearchHandle();
 
   @override
   void initState() {
@@ -67,33 +70,11 @@ class _MyHomePageState extends State<MyHomePage> {    // TODO : 마우스 포인
     // timer = Timer.periodic(const Duration(milliseconds: 200), (t) => debug(getMousePoint()));
   }
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
       body: SingleChildScrollView(
@@ -101,13 +82,10 @@ class _MyHomePageState extends State<MyHomePage> {    // TODO : 마우스 포인
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              const Text('You have pushed the button this many times:'),
-              Text(
-                '$_counter',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
+              searchHandle,
+              const Divider(),
               MouseCapture(),
-              Divider(),
+              const Divider(),
               ScanHp(hWnd:  3671362),
               bytes.isEmpty ? SizedBox() : Image.memory(bytes),
             ],
@@ -129,11 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {    // TODO : 마우스 포인
             tooltip: 'test',
             child: const Text('test'),
           ),
-          FloatingActionButton(
-            onPressed: _incrementCounter,
-            tooltip: 'Increment',
-            child: const Icon(Icons.add),
-          ),
+          
         ],
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
