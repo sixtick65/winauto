@@ -63,15 +63,19 @@ class _MyHomePageState extends State<MyHomePage> {
   Timer? timer;
 
   final SearchHandle searchHandle = SearchHandle();
+  final ScanHp scanHp = ScanHp();
+  final MouseCapture mouseCapture = MouseCapture();
 
   @override
   void initState() {
     super.initState();
     // timer = Timer.periodic(const Duration(milliseconds: 200), (t) => debug(getMousePoint()));
+    searchHandle.handle.onChanged((value){scanHp.hWnd.state = value;}, 'scanHp');
+    searchHandle.handle.onChanged((value){mouseCapture.hWnd.state = value;}, 'mouseCapture');
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) { // TODO : 이미지 캡쳐, 저장, 비교, 액션 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -84,9 +88,9 @@ class _MyHomePageState extends State<MyHomePage> {
             children: <Widget>[
               searchHandle,
               const Divider(),
-              MouseCapture(),
+              mouseCapture,
               const Divider(),
-              ScanHp(hWnd:  3671362),
+              scanHp,
               bytes.isEmpty ? SizedBox() : Image.memory(bytes),
             ],
           ),

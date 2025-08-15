@@ -1,3 +1,4 @@
+import 'package:winauto/util/bloc.dart';
 import 'package:winauto/win32.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -5,8 +6,8 @@ import 'package:win32/win32.dart';
 import 'package:flutter/services.dart';
 
 class ScanHp extends StatefulWidget {
-  int hWnd;
-  ScanHp({super.key, required this.hWnd});
+  Bloc<int> hWnd = Bloc(NULL);
+  ScanHp({super.key});
   int _x = 0;
   int get x => _x; 
   int _y = 0;
@@ -81,10 +82,10 @@ class _ScanHpState extends State<ScanHp> {
             Switch(value: isScan, onChanged: (onChanged){
               if(onChanged){
                 timer = Timer.periodic(const Duration(seconds: 1), (callback){
-                  widget._rgb = getColor(widget.hWnd, widget.x, widget.y);
+                  widget._rgb = getColor(widget.hWnd.state, widget.x, widget.y);
                   // debug(widget.rgb);
                   if(widget.rgb == (58, 0, 0)){
-                    sendKeyToForegroundWindow(widget.hWnd, VK_F4);
+                    sendKeyToForegroundWindow(widget.hWnd.state, VK_F4);
                   }
                   setState(() {
                     scanColor = widget.rgb;
