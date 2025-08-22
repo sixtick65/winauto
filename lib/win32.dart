@@ -3,13 +3,7 @@ import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart';
 import 'package:image/image.dart' as img;
 import 'package:flutter/foundation.dart';
-
-
-void debug(Object text){
-  if(kDebugMode){
-    debugPrint(text.toString());
-  }
-}
+import 'package:winauto/util/bloc.dart';
 
 String findName = '';
 int result = 0;
@@ -50,6 +44,245 @@ int _enumWindowsCallback(int hWnd, int lParam) {
     return 1; // for
   }
 
+// Uint8List captureRect(int hWnd, [int x = 0, int y = 0, int width = 10, int height = 10]) {
+//   // final point = calloc<POINT>();
+//   // GetCursorPos(point); // 스크린 좌표
+//   // int screenX = point.ref.x;
+//   // int screenY = point.ref.y;
+
+//   // int targetX = screenX;
+//   // int targetY = screenY;
+
+//   final hdcScreen = GetDC(hWnd);
+//   final hdcMem = CreateCompatibleDC(hdcScreen);
+
+//   // final rect = calloc<RECT>();
+//   // if (hWnd != NULL) {
+//   //   ScreenToClient(hWnd, point);
+//   //   targetX = point.ref.x;
+//   //   targetY = point.ref.y;
+//   //   GetClientRect(hWnd, rect);
+//   // } else {
+//   //   rect.ref.left = 0;
+//   //   rect.ref.top = 0;
+//   //   rect.ref.right = GetSystemMetrics(SM_CXSCREEN);
+//   //   rect.ref.bottom = GetSystemMetrics(SM_CYSCREEN);
+//   // }
+
+//   // final windowWidth = rect.ref.right - rect.ref.left;
+//   // final windowHeight = rect.ref.bottom - rect.ref.top;
+
+//   // 1. DIBSection 생성 (픽셀 배열 바로 접근 가능)
+//   final bmi = calloc<BITMAPINFO>();
+//   bmi.ref.bmiHeader.biSize = sizeOf<BITMAPINFOHEADER>();
+//   bmi.ref.bmiHeader.biWidth = width;
+//   bmi.ref.bmiHeader.biHeight = -height; // top-down
+//   bmi.ref.bmiHeader.biPlanes = 1;
+//   bmi.ref.bmiHeader.biBitCount = 32;
+//   bmi.ref.bmiHeader.biCompression = BI_RGB;
+
+//   final ppvBits = calloc<Pointer<Void>>();
+//   // final hBitmap = CreateDIBSection(hdcScreen, bmi, DIB_RGB_COLORS, ppvBits, NULL, 0);
+//   final hBitmap = CreateDIBSection(hdcMem, bmi, DIB_RGB_COLORS, ppvBits, NULL, 0);
+//   final pPixels = ppvBits.cast<Uint8>();
+
+//   // 2. 메모리 DC에 비트맵 선택
+//   final oldObj = SelectObject(hdcMem, hBitmap);
+
+//   // 3. BitBlt로 화면 → DIBSection
+//   BitBlt(hdcMem, 0, 0, width, height, hdcScreen, x, y, SRCCOPY);
+
+//   // 4. Uint8List로 바로 접근
+//   final bitmapSize = width * height * 4;
+//   final pixelData = pPixels.asTypedList(bitmapSize);
+
+//   // // 5. 첫 픽셀 색상 (BGRA 순서)
+//   // final b = pixelData[0];
+//   // final g = pixelData[1];
+//   // final r = pixelData[2];
+
+//   // 6. 리소스 해제
+//   SelectObject(hdcMem, oldObj);
+//   DeleteObject(hBitmap);
+//   DeleteDC(hdcMem);
+//   ReleaseDC(hWnd, hdcScreen);
+//   // calloc.free(point);
+//   // calloc.free(rect);
+//   calloc.free(bmi);
+//   calloc.free(ppvBits);
+
+//   return pixelData;
+// }
+
+Uint8List captureRect(int hWnd, int x, int y, int width, int height) {
+  // final point = calloc<POINT>();
+  // GetCursorPos(point); // 스크린 좌표
+
+  // int screenX = point.ref.x;
+  // int screenY = point.ref.y;
+
+  // int targetX = screenX;
+  // int targetY = screenY;
+
+  final hdcScreen = GetDC(hWnd);
+  final hdcMem = CreateCompatibleDC(hdcScreen);
+
+  // final rect = calloc<RECT>();
+  // if (hWnd != NULL) {
+  //   // 스크린 좌표 → 창 클라이언트 좌표
+  //   ScreenToClient(hWnd, point);
+  //   targetX = point.ref.x;
+  //   targetY = point.ref.y;
+
+  //   GetClientRect(hWnd, rect);
+  // } else {
+  //   // 화면 전체 DC
+  //   rect.ref.left = 0;
+  //   rect.ref.top = 0;
+  //   rect.ref.right = GetSystemMetrics(SM_CXSCREEN);
+  //   rect.ref.bottom = GetSystemMetrics(SM_CYSCREEN);
+  // }
+
+  // final windowWidth = rect.ref.right - rect.ref.left;
+  // final windowHeight = rect.ref.bottom - rect.ref.top;
+
+  // final hBitmap = CreateCompatibleBitmap(hdcScreen, windowWidth, windowHeight);
+  final hBitmap = CreateCompatibleBitmap(hdcScreen, width, height);
+  final oldObj = SelectObject(hdcMem, hBitmap);
+
+  // 화면을 메모리 DC로 복사
+  // 
+  // BitBlt(hdcMem, 0, 0, windowWidth, windowHeight, hdcScreen, 0, 0, SRCCOPY);
+  // BitBlt(hdcMem, 0, 0, width, height, hdcScreen, targetX, targetY, SRCCOPY);
+  BitBlt(hdcMem, 0, 0, width, height, hdcScreen, x, y, SRCCOPY);
+
+  // 6. 비트맵 정보 구조체 준비
+  final bmi = calloc<BITMAPINFO>();
+  bmi.ref.bmiHeader.biSize = sizeOf<BITMAPINFOHEADER>();
+  bmi.ref.bmiHeader.biWidth = width;
+  bmi.ref.bmiHeader.biHeight = -height; // top-down 이미지
+  bmi.ref.bmiHeader.biPlanes = 1;
+  bmi.ref.bmiHeader.biBitCount = 32; // 또는 24
+  bmi.ref.bmiHeader.biCompression = BI_RGB;
+
+  // 7. 비트 데이터 추출
+  final bitmapSize = width * height * 4; // 32비트의 경우
+  final bitmapData = calloc<Uint8>(bitmapSize);
+  GetDIBits(hdcMem, hBitmap, 0, height, bitmapData, bmi, DIB_RGB_COLORS);
+  
+
+  // // 8. 이미지 파일로 저장 (BMP 예시)
+  // final bmpFile = File('captured_window.bmp');
+  // final bytes = generateBmpHeader(width, height, bitmapData.asTypedList(bitmapSize));
+
+  // bmpFile.writeAsBytesSync(bytes);
+  // print('창 화면을 captured_window.bmp로 저장했습니다.');
+
+  // GetDIBits로 얻은 데이터를 Dart의 Uint8List로 변환
+  final pixelData = bitmapData.asTypedList(bitmapSize);
+  
+  // win32 API에서 가져온 비트맵은 일반적으로 BGR 순서입니다.
+  // Dart의 image 패키지는 RGB를 기대하므로 순서를 바꿔줘야 합니다.
+  // final img.Image image = img.Image.fromBytes(
+  //   width: width,
+  //   height: height,
+  //   bytes: pixelData.buffer,
+  //   order: img.ChannelOrder.bgra, // BGR-A 순서로 데이터 처리
+  // );
+  
+  // image 패키지를 사용하여 PNG로 인코딩
+  // final Uint8List pngBytes = img.encodePng(image); 
+
+  // final color = GetPixel(hdcMem, targetX, targetY);
+  // final color = GetPixel(hdcMem, 0, 0);
+
+  // final r = color & 0xFF;
+  // final g = (color >> 8) & 0xFF;
+  // final b = (color >> 16) & 0xFF;
+
+  // 리소스 해제
+  SelectObject(hdcMem, oldObj);
+  DeleteObject(hBitmap);
+  DeleteDC(hdcMem);
+  ReleaseDC(hWnd, hdcScreen);
+  // free(rect);
+  // free(point);
+
+  // return (targetX, targetY, r, g, b, pngBytes);
+  // return (targetX, targetY, r, g, b, pixelData);
+  return pixelData;
+}
+
+Uint8List captureRectPNG(int hWnd, int x, int y, int width, int height) {
+  // 1. 창의 DC 가져오기 device context
+  final hdcScreen = GetDC(hWnd); // 또는 GetWindowDC(hWnd) : 타이틀 테두리 포함
+
+  // 2. 호환 DC 생성
+  final hdcMemDC = CreateCompatibleDC(hdcScreen);
+
+  // 3. 창 크기 얻기
+  // final rect = calloc<RECT>();
+  // GetClientRect(hWnd, rect);
+  // debug("x : ${rect.ref.left}, y : ${rect.ref.top}"); // 0, 0
+  // final width = rect.ref.right - rect.ref.left;
+  // final height = rect.ref.bottom - rect.ref.top;
+  // free(rect);
+  // debug("width : $width, height : $height"); // 1323, 763
+
+  // 4. 호환 비트맵 생성 및 선택
+  final hBitmap = CreateCompatibleBitmap(hdcScreen, width, height);
+  SelectObject(hdcMemDC, hBitmap);
+
+  // 5. 화면 DC 내용을 메모리 DC로 복사
+  // BitBlt(hdcMemDC, 0, 0, width, height, hdcScreen, 0, 0, SRCCOPY);
+  BitBlt(hdcMemDC, x, y, width, height, hdcScreen, 0, 0, SRCCOPY);
+
+  // 6. 비트맵 정보 구조체 준비
+  final bmi = calloc<BITMAPINFO>();
+  bmi.ref.bmiHeader.biSize = sizeOf<BITMAPINFOHEADER>();
+  bmi.ref.bmiHeader.biWidth = width;
+  bmi.ref.bmiHeader.biHeight = -height; // top-down 이미지
+  bmi.ref.bmiHeader.biPlanes = 1;
+  bmi.ref.bmiHeader.biBitCount = 32; // 또는 24
+  bmi.ref.bmiHeader.biCompression = BI_RGB;
+
+  // 7. 비트 데이터 추출
+  final bitmapSize = width * height * 4; // 32비트의 경우
+  final bitmapData = calloc<Uint8>(bitmapSize);
+  GetDIBits(hdcMemDC, hBitmap, 0, height, bitmapData, bmi, DIB_RGB_COLORS);
+  
+
+  // // 8. 이미지 파일로 저장 (BMP 예시)
+  // final bmpFile = File('captured_window.bmp');
+  // final bytes = generateBmpHeader(width, height, bitmapData.asTypedList(bitmapSize));
+
+  // bmpFile.writeAsBytesSync(bytes);
+  // print('창 화면을 captured_window.bmp로 저장했습니다.');
+
+  // GetDIBits로 얻은 데이터를 Dart의 Uint8List로 변환
+  final pixelData = bitmapData.asTypedList(bitmapSize);
+  
+  // win32 API에서 가져온 비트맵은 일반적으로 BGR 순서입니다.
+  // Dart의 image 패키지는 RGB를 기대하므로 순서를 바꿔줘야 합니다.
+  final img.Image image = img.Image.fromBytes(
+    width: width,
+    height: height,
+    bytes: pixelData.buffer,
+    order: img.ChannelOrder.bgra, // BGR-A 순서로 데이터 처리
+  );
+  
+  // image 패키지를 사용하여 PNG로 인코딩
+  final Uint8List pngBytes = img.encodePng(image);
+  
+  free(bmi);
+  free(bitmapData);
+  // 9. 리소스 해제
+  DeleteObject(hBitmap);
+  DeleteDC(hdcMemDC);
+  ReleaseDC(hWnd, hdcScreen); // GetDC로 얻었으면 ReleaseDC 사용
+
+  return pngBytes;
+}
 
 Uint8List captureWindow(int hWnd) {
   // 1. 창의 DC 가져오기 device context
@@ -265,6 +498,177 @@ Uint8List captureWindow(int hWnd) {
   free(point);
 
   return (targetX, targetY, r, g, b);
+}
+
+/// 마우스 위치 기준 픽셀 색상
+/// hWnd: 창 핸들, NULL이면 화면 전체 기준
+(int screenX, int screenY, int r, int g, int b, Uint8List) getRectColor(int width, int height, [int hWnd = NULL]) {
+  final point = calloc<POINT>();
+  GetCursorPos(point); // 스크린 좌표
+
+  int screenX = point.ref.x;
+  int screenY = point.ref.y;
+
+  int targetX = screenX;
+  int targetY = screenY;
+
+  final hdcScreen = GetDC(hWnd);
+  final hdcMem = CreateCompatibleDC(hdcScreen);
+
+  final rect = calloc<RECT>();
+  if (hWnd != NULL) {
+    // 스크린 좌표 → 창 클라이언트 좌표
+    ScreenToClient(hWnd, point);
+    targetX = point.ref.x;
+    targetY = point.ref.y;
+
+    GetClientRect(hWnd, rect);
+  } else {
+    // 화면 전체 DC
+    rect.ref.left = 0;
+    rect.ref.top = 0;
+    rect.ref.right = GetSystemMetrics(SM_CXSCREEN);
+    rect.ref.bottom = GetSystemMetrics(SM_CYSCREEN);
+  }
+
+  final windowWidth = rect.ref.right - rect.ref.left;
+  final windowHeight = rect.ref.bottom - rect.ref.top;
+
+  final hBitmap = CreateCompatibleBitmap(hdcScreen, windowWidth, windowHeight);
+  final oldObj = SelectObject(hdcMem, hBitmap);
+
+  // 화면을 메모리 DC로 복사
+  // 
+  // BitBlt(hdcMem, 0, 0, windowWidth, windowHeight, hdcScreen, 0, 0, SRCCOPY);
+  BitBlt(hdcMem, 0, 0, width, height, hdcScreen, targetX, targetY, SRCCOPY);
+
+  // 6. 비트맵 정보 구조체 준비
+  final bmi = calloc<BITMAPINFO>();
+  bmi.ref.bmiHeader.biSize = sizeOf<BITMAPINFOHEADER>();
+  bmi.ref.bmiHeader.biWidth = width;
+  bmi.ref.bmiHeader.biHeight = -height; // top-down 이미지
+  bmi.ref.bmiHeader.biPlanes = 1;
+  bmi.ref.bmiHeader.biBitCount = 32; // 또는 24
+  bmi.ref.bmiHeader.biCompression = BI_RGB;
+
+  // 7. 비트 데이터 추출
+  final bitmapSize = width * height * 4; // 32비트의 경우
+  final bitmapData = calloc<Uint8>(bitmapSize);
+  GetDIBits(hdcMem, hBitmap, 0, height, bitmapData, bmi, DIB_RGB_COLORS);
+  
+
+  // // 8. 이미지 파일로 저장 (BMP 예시)
+  // final bmpFile = File('captured_window.bmp');
+  // final bytes = generateBmpHeader(width, height, bitmapData.asTypedList(bitmapSize));
+
+  // bmpFile.writeAsBytesSync(bytes);
+  // print('창 화면을 captured_window.bmp로 저장했습니다.');
+
+  // GetDIBits로 얻은 데이터를 Dart의 Uint8List로 변환
+  final pixelData = bitmapData.asTypedList(bitmapSize);
+  
+  // win32 API에서 가져온 비트맵은 일반적으로 BGR 순서입니다.
+  // Dart의 image 패키지는 RGB를 기대하므로 순서를 바꿔줘야 합니다.
+  // final img.Image image = img.Image.fromBytes(
+  //   width: width,
+  //   height: height,
+  //   bytes: pixelData.buffer,
+  //   order: img.ChannelOrder.bgra, // BGR-A 순서로 데이터 처리
+  // );
+  
+  // image 패키지를 사용하여 PNG로 인코딩
+  // final Uint8List pngBytes = img.encodePng(image); 
+
+  // final color = GetPixel(hdcMem, targetX, targetY);
+  final color = GetPixel(hdcMem, 0, 0);
+
+  final r = color & 0xFF;
+  final g = (color >> 8) & 0xFF;
+  final b = (color >> 16) & 0xFF;
+
+  // 리소스 해제
+  SelectObject(hdcMem, oldObj);
+  DeleteObject(hBitmap);
+  DeleteDC(hdcMem);
+  ReleaseDC(hWnd, hdcScreen);
+  free(rect);
+  free(point);
+
+  // return (targetX, targetY, r, g, b, pngBytes);
+  return (targetX, targetY, r, g, b, pixelData);
+}
+
+(int screenX, int screenY, int r, int g, int b, Uint8List) getRectColorDIBSection(
+    int width, int height,
+    [int hWnd = NULL]) {
+  final point = calloc<POINT>();
+  GetCursorPos(point); // 스크린 좌표
+  int screenX = point.ref.x;
+  int screenY = point.ref.y;
+
+  int targetX = screenX;
+  int targetY = screenY;
+
+  final hdcScreen = GetDC(hWnd);
+  final hdcMem = CreateCompatibleDC(hdcScreen);
+
+  final rect = calloc<RECT>();
+  if (hWnd != NULL) {
+    ScreenToClient(hWnd, point);
+    targetX = point.ref.x;
+    targetY = point.ref.y;
+    GetClientRect(hWnd, rect);
+  } else {
+    rect.ref.left = 0;
+    rect.ref.top = 0;
+    rect.ref.right = GetSystemMetrics(SM_CXSCREEN);
+    rect.ref.bottom = GetSystemMetrics(SM_CYSCREEN);
+  }
+
+  final windowWidth = rect.ref.right - rect.ref.left;
+  final windowHeight = rect.ref.bottom - rect.ref.top;
+
+  // 1. DIBSection 생성 (픽셀 배열 바로 접근 가능)
+  final bmi = calloc<BITMAPINFO>();
+  bmi.ref.bmiHeader.biSize = sizeOf<BITMAPINFOHEADER>();
+  bmi.ref.bmiHeader.biWidth = width;
+  bmi.ref.bmiHeader.biHeight = -height; // top-down
+  bmi.ref.bmiHeader.biPlanes = 1;
+  bmi.ref.bmiHeader.biBitCount = 32;
+  bmi.ref.bmiHeader.biCompression = BI_RGB;
+
+  final ppvBits = calloc<Pointer<Void>>();
+  final hBitmap =
+      CreateDIBSection(hdcScreen, bmi, DIB_RGB_COLORS, ppvBits, NULL, 0);
+  final pPixels = ppvBits.cast<Uint8>();
+
+  // 2. 메모리 DC에 비트맵 선택
+  final oldObj = SelectObject(hdcMem, hBitmap);
+
+  // 3. BitBlt로 화면 → DIBSection
+  BitBlt(
+      hdcMem, 0, 0, width, height, hdcScreen, targetX, targetY, SRCCOPY);
+
+  // 4. Uint8List로 바로 접근
+  final bitmapSize = width * height * 4;
+  final pixelData = pPixels.asTypedList(bitmapSize);
+
+  // 5. 첫 픽셀 색상 (BGRA 순서)
+  final b = pixelData[0];
+  final g = pixelData[1];
+  final r = pixelData[2];
+
+  // 6. 리소스 해제
+  SelectObject(hdcMem, oldObj);
+  DeleteObject(hBitmap);
+  DeleteDC(hdcMem);
+  ReleaseDC(hWnd, hdcScreen);
+  calloc.free(point);
+  calloc.free(rect);
+  calloc.free(bmi);
+  calloc.free(ppvBits);
+
+  return (targetX, targetY, r, g, b, pixelData);
 }
 
 void sendKeyToWindow(int hWnd, int vkCode) {

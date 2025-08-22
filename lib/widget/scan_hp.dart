@@ -8,9 +8,9 @@ import 'package:flutter/services.dart';
 class ScanHp extends StatefulWidget {
   Bloc<int> hWnd = Bloc(NULL);
   ScanHp({super.key});
-  int _x = 0;
+  int _x = 310;
   int get x => _x; 
-  int _y = 0;
+  int _y = 80;
   int get y => _y;
   (int,int,int) _rgb = (0,0,0);
   (int,int,int) get rgb => _rgb;
@@ -25,6 +25,13 @@ class _ScanHpState extends State<ScanHp> {
   (int, int, int) scanColor = (0,0,0);
   Timer? timer;
   bool isScan = false;
+
+  @override
+  void initState() {
+    super.initState();
+    controllerX.text = widget._x.toString();
+    controllerY.text = widget._y.toString();
+  }
 
   @override
   void dispose() {

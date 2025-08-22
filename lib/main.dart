@@ -3,12 +3,17 @@ import 'dart:typed_data';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:win32/win32.dart';
+import 'package:winauto/widget/auto_root.dart';
+import 'package:winauto/widget/capture_rect.dart';
+import 'package:winauto/widget/mouse_tracking.dart';
 import 'package:winauto/widget/scan_hp.dart';
 import 'package:winauto/widget/search_handle.dart';
+import 'package:winauto/widget/test.dart';
 
 import 'package:window_size/window_size.dart' as window_size;
 import 'win32.dart' as win32;
 import 'widget/mouse_capture.dart';
+import 'package:winauto/util/bloc.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,15 +49,16 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  MyHomePage({super.key, required this.title});
 
   final String title;
+  final ValueNotifier<int> handle = ValueNotifier(0);
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -62,16 +68,28 @@ class _MyHomePageState extends State<MyHomePage> {
   Uint8List bytes = Uint8List.fromList([]);
   Timer? timer;
 
-  final SearchHandle searchHandle = SearchHandle();
+  late final SearchHandle searchHandle;
   final ScanHp scanHp = ScanHp();
   final MouseCapture mouseCapture = MouseCapture();
+  final MouseTracking mouseTracking = MouseTracking();
+  final CaptureRect captureRect = CaptureRect();
+  late final AutoRoot autoRoot;
+  final TestState testState1 = TestState();
+  final TestState testState2 = TestState();
 
   @override
   void initState() {
     super.initState();
+    searchHandle = SearchHandle(handle: widget.handle);
+    autoRoot = AutoRoot(handle: widget.handle);
     // timer = Timer.periodic(const Duration(milliseconds: 200), (t) => debug(getMousePoint()));
-    searchHandle.handle.onChanged((value){scanHp.hWnd.state = value;}, 'scanHp');
-    searchHandle.handle.onChanged((value){mouseCapture.hWnd.state = value;}, 'mouseCapture');
+    searchHandle.handle.addListener((){scanHp.hWnd.state = searchHandle.handle.value;});
+    searchHandle.handle.addListener((){mouseCapture.hWnd.state = searchHandle.handle.value;});
+    searchHandle.handle.addListener((){mouseTracking.hWnd.state = searchHandle.handle.value;});
+    searchHandle.handle.addListener((){captureRect.hWnd.state = searchHandle.handle.value;});
+    testState1.number.addListener((){
+      testState2.number.value = testState1.number.value;
+      });
   }
 
   @override
@@ -90,8 +108,18 @@ class _MyHomePageState extends State<MyHomePage> {
               const Divider(),
               mouseCapture,
               const Divider(),
+              mouseTracking,
+              const Divider(),
               scanHp,
               bytes.isEmpty ? SizedBox() : Image.memory(bytes),
+              const Divider(),
+              captureRect,
+              const Divider(),
+              autoRoot,
+              const Divider(),
+              Row(children: [
+                testState1, testState2,
+              ],)
             ],
           ),
         ),
@@ -118,6 +146,4 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-void debug(Object text){
-  win32.debug(text);
-}
+

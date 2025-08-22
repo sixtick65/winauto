@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:win32/win32.dart';
 
 class SearchHandle extends StatefulWidget {
-  SearchHandle({super.key});
+  const SearchHandle({super.key, required this.handle});
 
-  Bloc<int> handle = Bloc<int>(0);
+  final ValueNotifier<int> handle;
 
   @override
   State<SearchHandle> createState() => _SearchHandleState();
@@ -19,8 +19,6 @@ class _SearchHandleState extends State<SearchHandle> {
   @override
   void initState() {
     super.initState();
-    debug(widget.handle.state);
-    debug("NULL : $NULL");
   }
 
   @override
@@ -45,7 +43,7 @@ class _SearchHandleState extends State<SearchHandle> {
                     onPressed: () {
                       controller.clear(); // 입력 내용 삭제
                       setState(() {
-                        widget.handle.state = NULL;
+                        widget.handle.value = NULL;
                       });
                     },
                   ),
@@ -53,15 +51,15 @@ class _SearchHandleState extends State<SearchHandle> {
                 ),
                 )),
             margin1,
-            Text(" : ${widget.handle.state.toString()}"),
+            Text(" : ${widget.handle.value.toString()}"),
             margin1,
             ElevatedButton(onPressed: (){
               setState(() {
                 try {
-                  widget.handle.state = findWindowHandle(controller.text);
-                  debug(widget.handle.state);
+                  widget.handle.value = findWindowHandle(controller.text);
+                  debug(widget.handle.value);
                 } catch (e) {
-                  widget.handle.state = NULL;
+                  widget.handle.value = NULL;
                   debug("${controller.text} not found");
                 }
               });
