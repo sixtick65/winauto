@@ -17,12 +17,12 @@ final providerWindowSize = Provider<(int,int)>((ref) {
   return getWindowSize(handle);
 });
 
-final providerMaxX = StateProvider<double>((ref){
+final providerMaxX = Provider<double>((ref){ // 읽기 전용
   final size = ref.watch(providerWindowSize);
   return size.$1.toDouble();
 });
 
-final providerMaxY = StateProvider<double>((ref){
+final providerMaxY = Provider<double>((ref){
   final size = ref.watch(providerWindowSize);
   return size.$2.toDouble();
 });

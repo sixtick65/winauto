@@ -13,8 +13,8 @@ class SliderButton extends ConsumerWidget {
     this.title = ''});
   final StateProvider<double> provider;
   final double min;
-  final StateProvider<double> max;
-  final StateProvider<double> division;
+  final Provider<double> max;
+  final Provider<double> division;
   final String title;
 
   @override
