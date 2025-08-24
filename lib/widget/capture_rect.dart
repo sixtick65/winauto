@@ -1,3 +1,5 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:winauto/provider/provider_main.dart';
 import 'package:winauto/util/bloc.dart';
 import 'package:winauto/win32.dart';
 import 'package:flutter/material.dart';
@@ -7,16 +9,14 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'dart:ui' as ui;
 
-class CaptureRect extends StatefulWidget {
-  CaptureRect({super.key});
-
-  final Bloc<int> hWnd = Bloc(0);
+class CaptureRect extends ConsumerStatefulWidget {
+  const CaptureRect({super.key});
 
   @override
-  State<CaptureRect> createState() => _CaptureRectState();
+  ConsumerState<CaptureRect> createState() => _CaptureRectState();
 }
 
-class _CaptureRectState extends State<CaptureRect> {
+class _CaptureRectState extends ConsumerState<CaptureRect> {
 
   
   _Interval interval = _Interval();
@@ -29,7 +29,7 @@ class _CaptureRectState extends State<CaptureRect> {
   void initState() {
     super.initState();
     switchCapture.toggle.onChanged((handler)=> image.toggle.state = handler, name:  '_CaptureRectState initState');
-    widget.hWnd.onChanged((handler) => image.hWnd.state = handler, name: '_CaptureRectState initState');
+    // widget.hWnd.onChanged((handler) => image.hWnd.state = handler, name: '_CaptureRectState initState');
   }
 
   @override
@@ -51,17 +51,16 @@ class _CaptureRectState extends State<CaptureRect> {
   
 }
 
-class _Image extends StatefulWidget {
+class _Image extends ConsumerStatefulWidget {
 
-  final Bloc<int> hWnd = Bloc(0);
   final Bloc<int> interval = Bloc(100);
   final Bloc<bool> toggle = Bloc(false);
 
   @override
-  State<_Image> createState() => __ImageState();
+  ConsumerState<_Image> createState() => __ImageState();
 }
 
-class __ImageState extends State<_Image> {
+class __ImageState extends ConsumerState<_Image> {
 
   RawImage rawImage = RawImage();
   Timer? timer;
@@ -90,10 +89,10 @@ class __ImageState extends State<_Image> {
     widget.toggle.onChanged((handler){
       debug(handler);
       if(handler){
-        debug('in ${widget.hWnd.state}');
-        if(widget.hWnd.state == 0)return;
+        debug('in ${ref.read(providerHandle)}');
+        if(ref.read(providerHandle) == 0)return;
         timer = Timer.periodic(Duration(milliseconds: widget.interval.state), (callback){
-          getImage(widget.hWnd.state, 600, 300, 100, 100);
+          getImage(ref.read(providerHandle), 600, 300, 100, 100);
         });
       }else{
         timer?.cancel();

@@ -9,11 +9,15 @@ import 'package:winauto/widget/mouse_tracking.dart';
 import 'package:winauto/widget/scan_hp.dart';
 import 'package:winauto/widget/search_handle.dart';
 import 'package:winauto/widget/test.dart';
+import 'package:winauto/widget/test_valuenotifier.dart';
 
 import 'package:window_size/window_size.dart' as window_size;
 import 'win32.dart' as win32;
 import 'widget/mouse_capture.dart';
 import 'package:winauto/util/bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+// import 'package:winauto/provider/provider_main.dart';
+
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +39,8 @@ void main() {
     });
   }
 
-  runApp(const MyApp());
+  // runApp(const MyApp());
+  runApp(ProviderScope(child: MyApp())); // 프로바이더스코프로 묶어야 상태참조가 가능함
 }
 
 class MyApp extends StatelessWidget {
@@ -59,6 +64,7 @@ class MyHomePage extends StatefulWidget {
 
   final String title;
   final ValueNotifier<int> handle = ValueNotifier(0);
+  final ValueNotifier<int> testCount = ValueNotifier(0);
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -76,20 +82,22 @@ class _MyHomePageState extends State<MyHomePage> {
   late final AutoRoot autoRoot;
   final TestState testState1 = TestState();
   final TestState testState2 = TestState();
+  
+  late final TestValuenotifier testValuenotifier1;
+  late final TestValuenotifier testValuenotifier2;
 
   @override
   void initState() {
     super.initState();
-    searchHandle = SearchHandle(handle: widget.handle);
+    testValuenotifier1 = TestValuenotifier(count: widget.testCount);
+    testValuenotifier2 = TestValuenotifier(count: widget.testCount);
+    searchHandle = SearchHandle();
     autoRoot = AutoRoot(handle: widget.handle);
     // timer = Timer.periodic(const Duration(milliseconds: 200), (t) => debug(getMousePoint()));
-    searchHandle.handle.addListener((){scanHp.hWnd.state = searchHandle.handle.value;});
-    searchHandle.handle.addListener((){mouseCapture.hWnd.state = searchHandle.handle.value;});
-    searchHandle.handle.addListener((){mouseTracking.hWnd.state = searchHandle.handle.value;});
-    searchHandle.handle.addListener((){captureRect.hWnd.state = searchHandle.handle.value;});
-    testState1.number.addListener((){
-      testState2.number.value = testState1.number.value;
-      });
+    // searchHandle.handle.addListener((){scanHp.hWnd.state = searchHandle.handle.value;});
+    // searchHandle.handle.addListener((){mouseCapture.hWnd.state = searchHandle.handle.value;});
+    // searchHandle.handle.addListener((){mouseTracking.hWnd.state = searchHandle.handle.value;});
+    // searchHandle.handle.addListener((){captureRect.hWnd.state = searchHandle.handle.value;});
   }
 
   @override
@@ -119,6 +127,9 @@ class _MyHomePageState extends State<MyHomePage> {
               const Divider(),
               Row(children: [
                 testState1, testState2,
+              ],),
+              Row(children: [
+                testValuenotifier1, testValuenotifier2,
               ],)
             ],
           ),

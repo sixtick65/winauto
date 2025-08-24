@@ -1,19 +1,19 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:winauto/provider/provider_main.dart';
 import 'package:winauto/util/bloc.dart';
 import 'package:winauto/win32.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:win32/win32.dart';
 
-class MouseCapture extends StatefulWidget {
-  MouseCapture({super.key});
-
-  Bloc<int> hWnd = Bloc(NULL);
+class MouseCapture extends ConsumerStatefulWidget {
+  const MouseCapture({super.key});
 
   @override
-  State<MouseCapture> createState() => _MouseCaptureState();
+  ConsumerState<MouseCapture> createState() => _MouseCaptureState();
 }
 
-class _MouseCaptureState extends State<MouseCapture> {
+class _MouseCaptureState extends ConsumerState<MouseCapture> {
   (int, int, int, int, int) point = (0,0,0,0,0);
   bool isCapture = false;
   Timer? timer;
@@ -53,7 +53,7 @@ class _MouseCaptureState extends State<MouseCapture> {
                   timer = Timer.periodic(const Duration(milliseconds: 200), (callback){
                     setState(() {
                       // point = getMousePoint(hWnd);
-                      point = getPixelColor(widget.hWnd.state);
+                      point = getPixelColor(ref.read(providerHandle));
                     });
                   });
                 }else{

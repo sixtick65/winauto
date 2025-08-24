@@ -2,6 +2,8 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:winauto/provider/provider_main.dart';
 import 'package:winauto/util/bloc.dart';
 import 'package:winauto/win32.dart';
 import 'package:flutter/material.dart';
@@ -13,16 +15,14 @@ class Point{
   int y= 0;
 }
 
-class MouseTracking extends StatefulWidget {
-  MouseTracking({super.key});
-
-  Bloc<int> hWnd = Bloc(NULL);
+class MouseTracking extends ConsumerStatefulWidget {
+  const MouseTracking({super.key});
 
   @override
-  State<MouseTracking> createState() => _MouseTrackingState();
+  ConsumerState<MouseTracking> createState() => _MouseTrackingState();
 }
 
-class _MouseTrackingState extends State<MouseTracking> {
+class _MouseTrackingState extends ConsumerState<MouseTracking> {
   (int, int, int, int, int, Uint8List) point = (0,0,0,0,0,Uint8List(0));
   bool isCapture = false;
   Timer? timer;
@@ -66,7 +66,7 @@ class _MouseTrackingState extends State<MouseTracking> {
                 timer = Timer.periodic(const Duration(milliseconds: 200), (callback){
                   setState(() {
                     // point = getMousePoint(hWnd);
-                    point = getRectColor(10, 10, widget.hWnd.state);
+                    point = getRectColor(10, 10, ref.read(providerHandle));
                     // image = Image.memory(point.$6, scale: 0.1, width: 100, height: 100,);
                     Completer<ui.Image> completer = Completer<ui.Image>();
                     ui.decodeImageFromPixels(point.$6, 10, 10, ui.PixelFormat.bgra8888, completer.complete);

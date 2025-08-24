@@ -1,12 +1,13 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:winauto/util/bloc.dart';
 import 'package:winauto/win32.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:win32/win32.dart';
 import 'package:flutter/services.dart';
+import 'package:winauto/provider/provider_main.dart';
 
-class ScanHp extends StatefulWidget {
-  Bloc<int> hWnd = Bloc(NULL);
+class ScanHp extends ConsumerStatefulWidget {
   ScanHp({super.key});
   int _x = 310;
   int get x => _x; 
@@ -16,10 +17,10 @@ class ScanHp extends StatefulWidget {
   (int,int,int) get rgb => _rgb;
 
   @override
-  State<ScanHp> createState() => _ScanHpState();
+  ConsumerState<ScanHp> createState() => _ScanHpState();
 }
 
-class _ScanHpState extends State<ScanHp> {
+class _ScanHpState extends ConsumerState<ScanHp> {
   TextEditingController controllerX = TextEditingController();
   TextEditingController controllerY = TextEditingController();
   (int, int, int) scanColor = (0,0,0);
@@ -89,10 +90,10 @@ class _ScanHpState extends State<ScanHp> {
             Switch(value: isScan, onChanged: (onChanged){
               if(onChanged){
                 timer = Timer.periodic(const Duration(seconds: 1), (callback){
-                  widget._rgb = getColor(widget.hWnd.state, widget.x, widget.y);
+                  widget._rgb = getColor(ref.read(providerHandle), widget.x, widget.y);
                   // debug(widget.rgb);
                   if(widget.rgb == (58, 0, 0)){
-                    sendKeyToForegroundWindow(widget.hWnd.state, VK_F4);
+                    sendKeyToForegroundWindow(ref.read(providerHandle), VK_F4);
                   }
                   setState(() {
                     scanColor = widget.rgb;

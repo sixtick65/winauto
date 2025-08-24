@@ -1,41 +1,38 @@
 import 'package:winauto/util/bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+final counterProvider = StateProvider((ref) => 0);
 
-class TestState extends StatefulWidget {
-  TestState({super.key});
-  
-  // final Bloc<int> num = Bloc(0);
-  final ValueNotifier<int> number = ValueNotifier(0);
+// class TestState extends ConsumerWidget {
+//   const TestState({super.key});
 
-  @override
-  State<TestState> createState() => _TestStateState();
-}
+//   @override
+//   Widget build(BuildContext context, WidgetRef ref) {
+//     debug('rebuild');
+//     final count = ref.watch(counterProvider);
 
-class _TestStateState extends State<TestState> {
-  @override
-  void initState() {
-    super.initState();
-    // widget.num.onChanged((handler) => debug(handler));
-    widget.number.addListener((){
-      debug(widget.number.value);
-    });
-  }
+//     return ElevatedButton(onPressed: (){
+//       // final ref.read(counterProvier);
+//       ref.read(counterProvider.notifier).state++;
+//     }, child: Text('$count'));
+//   }
+// }
+
+class TestState extends StatelessWidget {
+  const TestState({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(valueListenable: widget.number, builder: (context, value, child){
+    debug('rebuild');
+    
+    return Consumer(builder: (context, ref, child){
+      final count = ref.watch(counterProvider);
       return ElevatedButton(onPressed: (){
-        widget.number.value += 1;
-      }, child: Text('$value'));
+      // final ref.read(counterProvier);
+      ref.read(counterProvider.notifier).state++;
+    }, child: Text('$count}'));
     });
-    // return ElevatedButton(onPressed: (){
-    //   setState(() {
-    //     widget.num.state += 1;
-    //   });
-        
-      
-      
-    // }, child: Text('${widget.num.state}'));
   }
 }
+
