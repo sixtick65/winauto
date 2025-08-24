@@ -1,24 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:winauto/component/capture_image.dart';
 import 'package:winauto/component/input_text.dart';
 import 'package:winauto/component/output_text.dart';
 import 'package:winauto/component/switch_button.dart'; 
 import 'package:winauto/util/bloc.dart';
 
-class AutoRoot extends StatefulWidget {
+final StateProvider<bool> providerRootOnOff = StateProvider((ref) => false);
+
+class AutoRoot extends ConsumerStatefulWidget {
   const AutoRoot({super.key, required this.handle});
   final ValueNotifier<int> handle;
 
   @override
-  State<AutoRoot> createState() => _AutoRootState();
+  ConsumerState<AutoRoot> createState() => _AutoRootState();
 }
 
-class _AutoRootState extends State<AutoRoot> {
+class _AutoRootState extends ConsumerState<AutoRoot> {
   final SizedBox marginWidth = const SizedBox(width: 20,);
   final InputText x = InputText(key: UniqueKey(), type: InputType.number, text: '1061');
   final InputText y = InputText(key: UniqueKey(), type: InputType.number, text: '627');
   final CaptureImage image = CaptureImage();
-  final SwitchButton switchCapture = SwitchButton();
+  final SwitchButton switchCapture = SwitchButton(providerOnOff: providerRootOnOff,);
 
   @override
   void initState() {
